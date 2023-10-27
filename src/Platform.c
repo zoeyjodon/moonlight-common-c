@@ -93,7 +93,7 @@ void* ThreadProc(void* context) {
     free(ctx);
 #endif
 
-#if defined(LC_WINDOWS) || defined(__vita__) || defined(__WIIU__)
+#if defined(LC_WINDOWS) || defined(__vita__) || defined(__WIIU__) || defined(__3DS__)
     return 0;
 #else
     return NULL;
@@ -226,7 +226,7 @@ int PltCreateThread(const char* name, ThreadEntry entry, void* context, PLT_THRE
     ctx->entry = entry;
     ctx->context = context;
     ctx->name = name;
-    
+
     thread->cancelled = false;
 
 #if defined(LC_WINDOWS)
@@ -452,7 +452,7 @@ int initializePlatform(void) {
     if (err != 0) {
         return err;
     }
-    
+
     err = enet_initialize();
     if (err != 0) {
         return err;
@@ -467,7 +467,7 @@ void cleanupPlatform(void) {
     exitLowLatencyMode();
 
     cleanupPlatformSockets();
-    
+
     enet_deinitialize();
 
     LC_ASSERT(activeThreads == 0);

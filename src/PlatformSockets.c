@@ -37,7 +37,7 @@ void addrToUrlSafeString(struct sockaddr_storage* addr, char* string, size_t str
 {
     char addrstr[URLSAFESTRING_LEN];
 
-#ifdef AF_INET6
+#if defined(AF_INET6) && !(defined(__3DS__))
     if (addr->ss_family == AF_INET6) {
         struct sockaddr_in6* sin6 = (struct sockaddr_in6*)addr;
         inet_ntop(addr->ss_family, &sin6->sin6_addr, addrstr, sizeof(addrstr));
@@ -72,8 +72,8 @@ int setNonFatalRecvTimeoutMs(SOCKET s, int timeoutMs) {
     // losing some data in a very rare case is fine, especially because we get to
     // halve the number of syscalls per packet by avoiding select().
     return setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeoutMs, sizeof(timeoutMs));
-#elif defined(__WIIU__)
-    // timeouts aren't supported on Wii U
+#elif defined(__WIIU__) || defined(__3DS__)
+    // timeouts aren't supported on Wii U or 3DS
     return -1;
 #else
     struct timeval val;
@@ -162,7 +162,7 @@ bool isSocketReadable(SOCKET s) {
 
 int recvUdpSocket(SOCKET s, char* buffer, int size, bool useSelect) {
     int err;
-    
+
     do {
         if (useSelect) {
             struct pollfd pfd;
@@ -226,7 +226,7 @@ SOCKET bindUdpSocket(int addrfamily, int bufferSize) {
     int err;
     SOCKADDR_LEN addrLen;
 
-#ifdef AF_INET6
+#if defined(AF_INET6) && !(defined(__3DS__))
     LC_ASSERT(addrfamily == AF_INET || addrfamily == AF_INET6);
     addrLen = (addrfamily == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
 #else
@@ -433,7 +433,7 @@ SOCKET connectTcpSocket(struct sockaddr_storage* dstaddr, SOCKADDR_LEN addrlen, 
             goto Exit;
         }
     }
-    
+
     // Wait for the connection to complete or the timeout to elapse
     pfd.fd = s;
     pfd.events = POLLOUT;
@@ -465,7 +465,7 @@ SOCKET connectTcpSocket(struct sockaddr_storage* dstaddr, SOCKADDR_LEN addrlen, 
 
     // Disable non-blocking I/O now that the connection is established
     setSocketNonBlocking(s, false);
-    
+
 Exit:
     if (err != 0) {
         Limelog("connect() failed: %d\n", err);
@@ -528,7 +528,7 @@ int resolveHostName(const char* host, int family, int tcpTestPort, struct sockad
         Limelog("getaddrinfo(%s) returned success without addresses\n", host);
         return -1;
     }
-    
+
     for (currentAddr = res; currentAddr != NULL; currentAddr = currentAddr->ai_next) {
         // Use the test port to ensure this address is working if:
         // a) We have multiple addresses
@@ -546,10 +546,10 @@ int resolveHostName(const char* host, int family, int tcpTestPort, struct sockad
                 closeSocket(testSocket);
             }
         }
-        
+
         memcpy(addr, currentAddr->ai_addr, currentAddr->ai_addrlen);
         *addrLen = (SOCKADDR_LEN)currentAddr->ai_addrlen;
-        
+
         freeaddrinfo(res);
         return 0;
     }
@@ -559,17 +559,17 @@ int resolveHostName(const char* host, int family, int tcpTestPort, struct sockad
     return -1;
 }
 
-#ifdef AF_INET6
+#if defined(AF_INET6) && !(defined(__3DS__))
 bool isInSubnetV6(struct sockaddr_in6* sin6, unsigned char* subnet, int prefixLength) {
     int i;
-    
+
     for (i = 0; i < prefixLength; i++) {
         unsigned char mask = 1 << (i % 8);
         if ((sin6->sin6_addr.s6_addr[i / 8] & mask) != (subnet[i / 8] & mask)) {
             return false;
         }
     }
-    
+
     return true;
 }
 #endif
@@ -582,7 +582,7 @@ bool isPrivateNetworkAddress(struct sockaddr_storage* address) {
 
         memcpy(&addr, &((struct sockaddr_in*)address)->sin_addr, sizeof(addr));
         addr = htonl(addr);
-        
+
         // 10.0.0.0/8
         if ((addr & 0xFF000000) == 0x0A000000) {
             return true;
@@ -600,7 +600,7 @@ bool isPrivateNetworkAddress(struct sockaddr_storage* address) {
             return true;
         }
     }
-#ifdef AF_INET6
+#if defined(AF_INET6) && !(defined(__3DS__))
     else if (address->ss_family == AF_INET6) {
         struct sockaddr_in6* sin6 = (struct sockaddr_in6*)address;
         static unsigned char linkLocalPrefix[] = {0xfe, 0x80};
@@ -730,7 +730,7 @@ int initializePlatformSockets(void) {
 #if defined(LC_WINDOWS)
     WSADATA data;
     return WSAStartup(MAKEWORD(2, 0), &data);
-#elif defined(__vita__) || defined(__WIIU__)
+#elif defined(__vita__) || defined(__WIIU__) || defined(_3DS__)
     return 0; // already initialized
 #elif defined(LC_POSIX) && !defined(LC_CHROME)
     // Disable SIGPIPE signals to avoid us getting
