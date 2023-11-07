@@ -77,7 +77,7 @@ int initializeAudioStream(void) {
 
     // For GFE 3.22 compatibility, we must start the audio ping thread before the RTSP handshake.
     // It will not reply to our RTSP PLAY request until the audio ping has been received.
-    rtpSocket = bindUdpSocket(RemoteAddr.ss_family, 0);
+    rtpSocket = bindUdpSocket(RemoteAddr.ss_family, 0, 48000);
     if (rtpSocket == INVALID_SOCKET) {
         return LastSocketFail();
     }
@@ -275,7 +275,7 @@ static void AudioReceiveThreadProc(void* context) {
         }
         else if (packet->header.size == 0) {
             // Receive timed out; try again
-            
+
             if (!receivedDataFromPeer) {
                 waitingForAudioMs += UDP_RECV_POLL_TIMEOUT_MS;
             }
@@ -366,7 +366,7 @@ static void AudioReceiveThreadProc(void* context) {
                         free(queuedPacket);
                     }
                 }
-                
+
                 // Break on exit
                 if (queuedPacket != NULL) {
                     break;
@@ -374,7 +374,7 @@ static void AudioReceiveThreadProc(void* context) {
             }
         }
     }
-    
+
     if (packet != NULL) {
         free(packet);
     }
@@ -405,12 +405,12 @@ void stopAudioStream(void) {
     AudioCallbacks.stop();
 
     PltInterruptThread(&receiveThread);
-    if ((AudioCallbacks.capabilities & CAPABILITY_DIRECT_SUBMIT) == 0) {        
+    if ((AudioCallbacks.capabilities & CAPABILITY_DIRECT_SUBMIT) == 0) {
         // Signal threads waiting on the LBQ
         LbqSignalQueueShutdown(&packetQueue);
         PltInterruptThread(&decoderThread);
     }
-    
+
     PltJoinThread(&receiveThread);
     if ((AudioCallbacks.capabilities & CAPABILITY_DIRECT_SUBMIT) == 0) {
         PltJoinThread(&decoderThread);

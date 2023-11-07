@@ -1,5 +1,10 @@
 #include "Limelight-internal.h"
 
+#ifdef __3DS__
+#include <3ds.h>
+#include <netinet/in.h>
+#endif
+
 #define TEST_PORT_TIMEOUT_SEC 3
 
 #define RCV_BUFFER_SIZE_MIN  32767
@@ -220,18 +225,27 @@ void closeSocket(SOCKET s) {
 #endif
 }
 
-SOCKET bindUdpSocket(int addrfamily, int bufferSize) {
+SOCKET bindUdpSocket(int addrfamily, int bufferSize, in_port_t port) {
     SOCKET s;
-    struct sockaddr_storage addr;
     int err;
     SOCKADDR_LEN addrLen;
 
 #if defined(AF_INET6) && !(defined(__3DS__))
+    struct sockaddr_storage addr;
+    memset(&addr, 0, sizeof(addr));
     LC_ASSERT(addrfamily == AF_INET || addrfamily == AF_INET6);
     addrLen = (addrfamily == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+    addr.ss_family = addrfamily;
 #else
     LC_ASSERT(addrfamily == AF_INET);
+	struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
     addrLen = sizeof(struct sockaddr_in);
+	addr.sin_family = AF_INET;
+#ifdef __3DS__
+	addr.sin_port = htons (port);
+	addr.sin_addr.s_addr = gethostid();
+#endif
 #endif
 
     s = createSocket(addrfamily, SOCK_DGRAM, IPPROTO_UDP, false);
@@ -239,8 +253,6 @@ SOCKET bindUdpSocket(int addrfamily, int bufferSize) {
         return INVALID_SOCKET;
     }
 
-    memset(&addr, 0, sizeof(addr));
-    addr.ss_family = addrfamily;
     if (bind(s, (struct sockaddr*) &addr, addrLen) == SOCKET_ERROR) {
         err = LastSocketError();
         Limelog("bind() failed: %d\n", err);
@@ -453,6 +465,7 @@ SOCKET connectTcpSocket(struct sockaddr_storage* dstaddr, SOCKADDR_LEN addrlen, 
         SetLastSocketError(ETIMEDOUT);
         return INVALID_SOCKET;
     }
+#ifndef __3DS__ //getsockopt is unreliable on 3DS
     else {
         // The socket was signalled
         SOCKADDR_LEN len = sizeof(err);
@@ -462,6 +475,9 @@ SOCKET connectTcpSocket(struct sockaddr_storage* dstaddr, SOCKADDR_LEN addrlen, 
             err = (err != 0) ? err : LastSocketFail();
         }
     }
+#else
+    err = 0;
+#endif
 
     // Disable non-blocking I/O now that the connection is established
     setSocketNonBlocking(s, false);
