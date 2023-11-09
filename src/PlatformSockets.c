@@ -252,8 +252,8 @@ SOCKET bindUdpSocket(int addrfamily, int bufferSize, in_port_t port) {
     addr.ss_family = addrfamily;
 #ifdef __3DS__
     struct sockaddr_in *n3ds_addr = &addr;
-	n3ds_addr->sin_port = htons (port);
-	n3ds_addr->sin_addr.s_addr = gethostid();
+    n3ds_addr->sin_port = htons (port);
+    n3ds_addr->sin_addr.s_addr = gethostid();
 #endif
     if (bind(s, (struct sockaddr*) &addr, addrLen) == SOCKET_ERROR) {
         err = LastSocketError();
