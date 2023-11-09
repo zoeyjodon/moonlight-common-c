@@ -2,6 +2,13 @@
 
 #include "Limelight.h"
 #include "Platform.h"
+#ifdef __3DS__
+#include <netinet/in.h>
+
+#ifdef AF_INET6
+#undef AF_INET6
+#endif
+#endif
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -88,7 +95,7 @@ SOCKET createSocket(int addressFamily, int socketType, int protocol, bool nonBlo
 SOCKET connectTcpSocket(struct sockaddr_storage* dstaddr, SOCKADDR_LEN addrlen, unsigned short port, int timeoutSec);
 int connectUdpSocket(SOCKET s, struct sockaddr_storage* dstaddr, SOCKADDR_LEN addrlen, unsigned short port);
 int sendMtuSafe(SOCKET s, char* buffer, int size);
-SOCKET bindUdpSocket(int addrfamily, int bufferSize);
+SOCKET bindUdpSocket(int addrfamily, int bufferSize, in_port_t port);
 int enableNoDelay(SOCKET s);
 int setSocketNonBlocking(SOCKET s, bool enabled);
 int recvUdpSocket(SOCKET s, char* buffer, int size, bool useSelect);
