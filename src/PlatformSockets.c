@@ -46,7 +46,7 @@ void addrToUrlSafeString(struct sockaddr_storage* addr, char* string, size_t str
 {
     char addrstr[URLSAFESTRING_LEN];
 
-#if defined(AF_INET6)
+#ifdef AF_INET6
     if (addr->ss_family == AF_INET6) {
         struct sockaddr_in6* sin6 = (struct sockaddr_in6*)addr;
         inet_ntop(addr->ss_family, &sin6->sin6_addr, addrstr, sizeof(addrstr));
@@ -231,25 +231,16 @@ void closeSocket(SOCKET s) {
 
 SOCKET bindUdpSocket(int addrfamily, int bufferSize, in_port_t port) {
     SOCKET s;
+    struct sockaddr_storage addr;
     int err;
     SOCKADDR_LEN addrLen;
 
-#if defined(AF_INET6)
-    struct sockaddr_storage addr;
-    memset(&addr, 0, sizeof(addr));
+#ifdef AF_INET6
     LC_ASSERT(addrfamily == AF_INET || addrfamily == AF_INET6);
     addrLen = (addrfamily == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
-    addr.ss_family = addrfamily;
 #else
     LC_ASSERT(addrfamily == AF_INET);
-	struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
     addrLen = sizeof(struct sockaddr_in);
-	addr.sin_family = AF_INET;
-#ifdef __3DS__
-	addr.sin_port = htons (port);
-	addr.sin_addr.s_addr = gethostid();
-#endif
 #endif
 
     s = createSocket(addrfamily, SOCK_DGRAM, IPPROTO_UDP, false);
@@ -257,6 +248,13 @@ SOCKET bindUdpSocket(int addrfamily, int bufferSize, in_port_t port) {
         return INVALID_SOCKET;
     }
 
+    memset(&addr, 0, sizeof(addr));
+    addr.ss_family = addrfamily;
+#ifdef __3DS__
+    struct sockaddr_in *n3ds_addr = &addr;
+	n3ds_addr->sin_port = htons (port);
+	n3ds_addr->sin_addr.s_addr = gethostid();
+#endif
     if (bind(s, (struct sockaddr*) &addr, addrLen) == SOCKET_ERROR) {
         err = LastSocketError();
         Limelog("bind() failed: %d\n", err);
@@ -579,7 +577,7 @@ int resolveHostName(const char* host, int family, int tcpTestPort, struct sockad
     return -1;
 }
 
-#if defined(AF_INET6)
+#ifdef AF_INET6
 bool isInSubnetV6(struct sockaddr_in6* sin6, unsigned char* subnet, int prefixLength) {
     int i;
 
@@ -620,7 +618,7 @@ bool isPrivateNetworkAddress(struct sockaddr_storage* address) {
             return true;
         }
     }
-#if defined(AF_INET6)
+#ifdef AF_INET6
     else if (address->ss_family == AF_INET6) {
         struct sockaddr_in6* sin6 = (struct sockaddr_in6*)address;
         static unsigned char linkLocalPrefix[] = {0xfe, 0x80};

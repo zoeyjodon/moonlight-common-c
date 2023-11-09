@@ -73,7 +73,7 @@ typedef ssize_t SOCK_RET;
 typedef socklen_t SOCKADDR_LEN;
 #endif
 
-#if defined(AF_INET6)
+#ifdef AF_INET6
 typedef struct sockaddr_in6 LC_SOCKADDR;
 #define SET_PORT(addr, port) ((addr)->sin6_port = htons(port))
 #else
@@ -83,7 +83,7 @@ typedef struct sockaddr_in LC_SOCKADDR;
 
 #define LastSocketFail() ((LastSocketError() != 0) ? LastSocketError() : -1)
 
-#if defined(AF_INET6)
+#ifdef AF_INET6
 // IPv6 addresses have 2 extra characters for URL escaping
 #define URLSAFESTRING_LEN (INET6_ADDRSTRLEN+2)
 #else
