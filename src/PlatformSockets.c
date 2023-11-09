@@ -3,6 +3,10 @@
 #ifdef __3DS__
 #include <3ds.h>
 #include <netinet/in.h>
+
+#ifdef AF_INET6
+#undef AF_INET6
+#endif
 #endif
 
 #define TEST_PORT_TIMEOUT_SEC 3
@@ -42,7 +46,7 @@ void addrToUrlSafeString(struct sockaddr_storage* addr, char* string, size_t str
 {
     char addrstr[URLSAFESTRING_LEN];
 
-#if defined(AF_INET6) && !(defined(__3DS__))
+#if defined(AF_INET6)
     if (addr->ss_family == AF_INET6) {
         struct sockaddr_in6* sin6 = (struct sockaddr_in6*)addr;
         inet_ntop(addr->ss_family, &sin6->sin6_addr, addrstr, sizeof(addrstr));
@@ -230,7 +234,7 @@ SOCKET bindUdpSocket(int addrfamily, int bufferSize, in_port_t port) {
     int err;
     SOCKADDR_LEN addrLen;
 
-#if defined(AF_INET6) && !(defined(__3DS__))
+#if defined(AF_INET6)
     struct sockaddr_storage addr;
     memset(&addr, 0, sizeof(addr));
     LC_ASSERT(addrfamily == AF_INET || addrfamily == AF_INET6);
@@ -575,7 +579,7 @@ int resolveHostName(const char* host, int family, int tcpTestPort, struct sockad
     return -1;
 }
 
-#if defined(AF_INET6) && !(defined(__3DS__))
+#if defined(AF_INET6)
 bool isInSubnetV6(struct sockaddr_in6* sin6, unsigned char* subnet, int prefixLength) {
     int i;
 
@@ -616,7 +620,7 @@ bool isPrivateNetworkAddress(struct sockaddr_storage* address) {
             return true;
         }
     }
-#if defined(AF_INET6) && !(defined(__3DS__))
+#if defined(AF_INET6)
     else if (address->ss_family == AF_INET6) {
         struct sockaddr_in6* sin6 = (struct sockaddr_in6*)address;
         static unsigned char linkLocalPrefix[] = {0xfe, 0x80};
