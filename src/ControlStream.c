@@ -362,7 +362,7 @@ void destroyControlStream(void) {
 
 static void queueFrameInvalidationTuple(uint32_t startFrame, uint32_t endFrame) {
     LC_ASSERT(startFrame <= endFrame);
-    
+
     if (isReferenceFrameInvalidationEnabled()) {
         PQUEUED_FRAME_INVALIDATION_TUPLE qfit;
         qfit = malloc(sizeof(*qfit));
@@ -411,7 +411,7 @@ void connectionSendFrameFecStatus(PSS_FRAME_FEC_STATUS fecStatus) {
     if (!IS_SUNSHINE()) {
         return;
     }
-    
+
     // Queue a frame FEC status message. This is best-effort only.
     PQUEUED_FRAME_FEC_STATUS queuedFecStatus = malloc(sizeof(*queuedFecStatus));
     if (queuedFecStatus != NULL) {
@@ -1005,6 +1005,14 @@ static void controlReceiveThreadFunc(void* context) {
 
         // Poll for new packets and process retransmissions
         err = serviceEnetHost(client, &event, 0);
+        int retry_count = 0;
+        while (err != 0) {
+            if (retry_count > 3) {
+                break;
+            }
+            err = serviceEnetHost(client, &event, 0);
+            retry_count++;
+        }
 
         // Compute the next time we need to wake up to handle
         // the RTO timer or a ping.
@@ -1286,7 +1294,7 @@ static void lossStatsThreadFunc(void* context) {
                         free(queuedFrameStatus);
                         return;
                     }
-                    
+
                     free(queuedFrameStatus);
                 }
             }
@@ -1314,7 +1322,7 @@ static void lossStatsThreadFunc(void* context) {
     }
     else {
         char* lossStatsPayload;
-        
+
         // Sunshine should use the newer codepath above
         LC_ASSERT(!IS_SUNSHINE());
 
@@ -1490,7 +1498,7 @@ int stopControlStream(void) {
     if (ctlSock != INVALID_SOCKET) {
         shutdownTcpSocket(ctlSock);
     }
-    
+
     PltInterruptThread(&lossStatsThread);
     PltInterruptThread(&requestIdrFrameThread);
     PltInterruptThread(&controlReceiveThread);
@@ -1523,7 +1531,7 @@ int stopControlStream(void) {
         enet_host_destroy(client);
         client = NULL;
     }
-    
+
     if (ctlSock != INVALID_SOCKET) {
         closeSocket(ctlSock);
         ctlSock = INVALID_SOCKET;
@@ -1594,7 +1602,7 @@ int startControlStream(void) {
     if (AppVersionQuad[0] >= 5) {
         ENetAddress address;
         ENetEvent event;
-        
+
         LC_ASSERT(ControlPortNumber != 0);
 
         enet_address_set_address(&address, (struct sockaddr *)&RemoteAddr, RemoteAddrLen);
@@ -1658,7 +1666,7 @@ int startControlStream(void) {
 
         // Ensure the connect verify ACK is sent immediately
         enet_host_flush(client);
-        
+
         // Set the peer timeout to 10 seconds and limit backoff to 2x RTT
         enet_peer_timeout(peer, 2, 10000, 10000);
     }

@@ -32,6 +32,15 @@
 #include <coreinit/fastmutex.h>
 #include <coreinit/fastcondition.h>
 #include <fcntl.h>
+#elif defined(__3DS__)
+#include <3ds.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <fcntl.h>
 #else
 #include <unistd.h>
 #include <pthread.h>
