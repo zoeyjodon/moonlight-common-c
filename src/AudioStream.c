@@ -236,6 +236,12 @@ static void decodeInputData(PQUEUED_AUDIO_PACKET packet) {
     }
 }
 
+static uint64_t AudioReceiveThreadProc_avgLoopTime;
+
+uint64_t get_AudioReceiveThreadProc_avgLoopTime() {
+    return AudioReceiveThreadProc_avgLoopTime;
+}
+
 static void AudioReceiveThreadProc(void* context) {
     PRTP_PACKET rtp;
     PQUEUED_AUDIO_PACKET packet;
@@ -256,8 +262,12 @@ static void AudioReceiveThreadProc(void* context) {
         useSelect = false;
     }
 
+    AudioReceiveThreadProc_avgLoopTime = 0;
+    uint64_t avgLoopCount = 0;
     waitingForAudioMs = 0;
     while (!PltIsThreadInterrupted(&receiveThread)) {
+        uint64_t loopTimeStart = PltGetMillis();
+
         if (packet == NULL) {
             packet = (PQUEUED_AUDIO_PACKET)malloc(sizeof(*packet));
             if (packet == NULL) {
@@ -284,12 +294,12 @@ static void AudioReceiveThreadProc(void* context) {
                 // so we don't need to drop anything.
                 packetsToDrop = 0;
             }
-            continue;
+            goto update_loop_avg;
         }
 
         if (packet->header.size < (int)sizeof(RTP_PACKET)) {
             // Runt packet
-            continue;
+            goto update_loop_avg;
         }
 
         rtp = (PRTP_PACKET)&packet->data[0];
@@ -312,7 +322,7 @@ static void AudioReceiveThreadProc(void* context) {
             if (rtp->packetType == 97) {
                 packetsToDrop--;
             }
-            continue;
+            goto update_loop_avg;
         }
 
         // Convert fields to host byte-order
@@ -373,18 +383,43 @@ static void AudioReceiveThreadProc(void* context) {
                 }
             }
         }
+
+        update_loop_avg:
+        uint64_t loopTimeElapsed = PltGetMillis() - loopTimeStart;
+        if (avgLoopCount < 1) {
+            AudioReceiveThreadProc_avgLoopTime = loopTimeElapsed;
+            avgLoopCount++;
+        }
+        else {
+            AudioReceiveThreadProc_avgLoopTime = ((AudioReceiveThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (AudioReceiveThreadProc_avgLoopTime + 1);
+            if (avgLoopCount < 1000) {
+                avgLoopCount++;
+            }
+        }
+        printf("AudioReceiveThreadProc: %llu ms", AudioReceiveThreadProc_avgLoopTime);
     }
 
     if (packet != NULL) {
         free(packet);
     }
+    printf("AudioReceiveThreadProc: %llu ms", AudioReceiveThreadProc_avgLoopTime);
+}
+
+static uint64_t AudioDecoderThreadProc_avgLoopTime;
+
+uint64_t get_AudioDecoderThreadProc_avgLoopTime() {
+    return AudioDecoderThreadProc_avgLoopTime;
 }
 
 static void AudioDecoderThreadProc(void* context) {
     int err;
     PQUEUED_AUDIO_PACKET packet;
 
+    AudioDecoderThreadProc_avgLoopTime = 0;
+    uint64_t avgLoopCount = 0;
     while (!PltIsThreadInterrupted(&decoderThread)) {
+        uint64_t loopTimeStart = PltGetMillis();
+
         err = LbqWaitForQueueElement(&packetQueue, (void**)&packet);
         if (err != LBQ_SUCCESS) {
             // An exit signal was received
@@ -394,7 +429,22 @@ static void AudioDecoderThreadProc(void* context) {
         decodeInputData(packet);
 
         free(packet);
+
+        update_loop_avg:
+        uint64_t loopTimeElapsed = PltGetMillis() - loopTimeStart;
+        if (avgLoopCount < 1) {
+            AudioDecoderThreadProc_avgLoopTime = loopTimeElapsed;
+            avgLoopCount++;
+        }
+        else {
+            AudioDecoderThreadProc_avgLoopTime = ((AudioDecoderThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (AudioDecoderThreadProc_avgLoopTime + 1);
+            if (avgLoopCount < 1000) {
+                avgLoopCount++;
+            }
+        }
+        printf("AudioDecoderThreadProc: %llu ms", AudioDecoderThreadProc_avgLoopTime);
     }
+    printf("AudioDecoderThreadProc: %llu ms", AudioDecoderThreadProc_avgLoopTime);
 }
 
 void stopAudioStream(void) {

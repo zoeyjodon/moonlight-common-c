@@ -71,6 +71,12 @@ static void VideoPingThreadProc(void* context) {
     }
 }
 
+static uint64_t VideoReceiveThreadProc_avgLoopTime;
+
+uint64_t get_VideoReceiveThreadProc_avgLoopTime() {
+    return VideoReceiveThreadProc_avgLoopTime;
+}
+
 // Receive thread proc
 static void VideoReceiveThreadProc(void* context) {
     int err;
@@ -93,8 +99,12 @@ static void VideoReceiveThreadProc(void* context) {
         useSelect = false;
     }
 
+    VideoReceiveThreadProc_avgLoopTime = 0;
+    uint64_t avgLoopCount = 0;
     waitingForVideoMs = 0;
     while (!PltIsThreadInterrupted(&receiveThread)) {
+        uint64_t loopTimeStart = PltGetMillis();
+
         PRTP_PACKET packet;
 
         if (buffer == NULL) {
@@ -125,7 +135,7 @@ static void VideoReceiveThreadProc(void* context) {
             }
 
             // Receive timed out; try again
-            continue;
+            goto update_loop_avg;
         }
 
         if (!receivedDataFromPeer) {
@@ -149,7 +159,7 @@ static void VideoReceiveThreadProc(void* context) {
 
         if (err < (int)sizeof(RTP_PACKET)) {
             // Runt packet
-            continue;
+            goto update_loop_avg;
         }
 
         // Convert fields to host byte-order
@@ -164,11 +174,26 @@ static void VideoReceiveThreadProc(void* context) {
             // The queue owns the buffer
             buffer = NULL;
         }
+
+        update_loop_avg:
+        uint64_t loopTimeElapsed = PltGetMillis() - loopTimeStart;
+        if (avgLoopCount < 1) {
+            VideoReceiveThreadProc_avgLoopTime = loopTimeElapsed;
+            avgLoopCount++;
+        }
+        else {
+            VideoReceiveThreadProc_avgLoopTime = ((VideoReceiveThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (VideoReceiveThreadProc_avgLoopTime + 1);
+            if (avgLoopCount < 1000) {
+                avgLoopCount++;
+            }
+        }
+        printf("VideoReceiveThreadProc: %llu ms", VideoReceiveThreadProc_avgLoopTime);
     }
 
     if (buffer != NULL) {
         free(buffer);
     }
+    printf("VideoReceiveThreadProc: %llu ms", VideoReceiveThreadProc_avgLoopTime);
 }
 
 void notifyKeyFrameReceived(void) {
@@ -176,9 +201,19 @@ void notifyKeyFrameReceived(void) {
     receivedFullFrame = true;
 }
 
+static uint64_t VideoDecoderThreadProc_avgLoopTime;
+
+uint64_t get_VideoDecoderThreadProc_avgLoopTime() {
+    return VideoDecoderThreadProc_avgLoopTime;
+}
+
 // Decoder thread proc
 static void VideoDecoderThreadProc(void* context) {
+    VideoDecoderThreadProc_avgLoopTime = 0;
+    uint64_t avgLoopCount = 0;
     while (!PltIsThreadInterrupted(&decoderThread)) {
+        uint64_t loopTimeStart = PltGetMillis();
+
         VIDEO_FRAME_HANDLE frameHandle;
         PDECODE_UNIT decodeUnit;
 
@@ -187,7 +222,21 @@ static void VideoDecoderThreadProc(void* context) {
         }
 
         LiCompleteVideoFrame(frameHandle, VideoCallbacks.submitDecodeUnit(decodeUnit));
+
+        uint64_t loopTimeElapsed = PltGetMillis() - loopTimeStart;
+        if (avgLoopCount < 1) {
+            VideoDecoderThreadProc_avgLoopTime = loopTimeElapsed;
+            avgLoopCount++;
+        }
+        else {
+            VideoDecoderThreadProc_avgLoopTime = ((VideoDecoderThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (VideoDecoderThreadProc_avgLoopTime + 1);
+            if (avgLoopCount < 1000) {
+                avgLoopCount++;
+            }
+        }
+        printf("VideoDecoderThreadProc: %llu ms", VideoDecoderThreadProc_avgLoopTime);
     }
+    printf("VideoDecoderThreadProc: %llu ms", VideoDecoderThreadProc_avgLoopTime);
 }
 
 // Read the first frame of the video stream
