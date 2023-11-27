@@ -223,6 +223,13 @@ static void thread_deallocator(OSThread *thread, void *stack) {
 }
 #endif
 
+#ifdef __3DS__
+static int n3ds_core_id = 0;
+void PltSetCoreId(int core_id) {
+    n3ds_core_id = core_id;
+}
+#endif
+
 int PltCreateThread(const char* name, ThreadEntry entry, void* context, PLT_THREAD* thread) {
     struct thread_context* ctx;
 
@@ -276,24 +283,14 @@ int PltCreateThread(const char* name, ThreadEntry entry, void* context, PLT_THRE
 #elif defined(__3DS__)
     {
         s32 priority = 0x30;
-        int cpu = (activeThreads + 1) % 4;
         size_t stack_size = 80 * 1024;
         svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
         thread->thread = threadCreate(ThreadProc,
                                     ctx,
                                     stack_size,
                                     priority,
-                                    cpu,
+                                    n3ds_core_id,
                                     false);
-        if ((thread->thread == NULL) && (cpu == 3)) {
-            cpu = 0;
-            thread->thread = threadCreate(ThreadProc,
-                                        ctx,
-                                        stack_size,
-                                        priority,
-                                        cpu,
-                                        false);
-        }
         if (thread->thread == NULL) {
             free(ctx);
             return -1;
