@@ -348,12 +348,12 @@ static void inputSendThreadProc(void* context) {
     uint64_t avgLoopCount = 0;
 
     while (!PltIsThreadInterrupted(&inputSendThread)) {
-        uint64_t loopTimeStart = PltGetMillis();
 
         err = LbqWaitForQueueElement(&packetQueue, (void**)&holder);
         if (err != LBQ_SUCCESS) {
             return;
         }
+        uint64_t loopTimeStart = PltGetMillis();
 
         // If it's a multi-controller packet we can do batching
         if (holder->packet.header.magic == multiControllerMagicLE) {
@@ -676,14 +676,12 @@ static void inputSendThreadProc(void* context) {
             avgLoopCount++;
         }
         else {
-            inputSendThreadProc_avgLoopTime = ((inputSendThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (inputSendThreadProc_avgLoopTime + 1);
+            inputSendThreadProc_avgLoopTime = ((inputSendThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
             if (avgLoopCount < 1000) {
                 avgLoopCount++;
             }
         }
-        printf("inputSendThreadProc: %llu ms", inputSendThreadProc_avgLoopTime);
     }
-    printf("inputSendThreadProc: %llu ms", inputSendThreadProc_avgLoopTime);
 }
 
 // This function tells GFE that we support haptics and it should send rumble events to us

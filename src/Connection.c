@@ -454,7 +454,13 @@ int LiStartConnection(PSERVER_INFORMATION serverInfo, PSTREAM_CONFIGURATION stre
 
     Limelog("Starting control stream...");
     ListenerCallbacks.stageStarting(STAGE_CONTROL_STREAM_START);
+#ifdef __3DS__
+    PltSetCoreId(2);
+#endif
     err = startControlStream();
+#ifdef __3DS__
+    PltSetCoreId(0);
+#endif
     if (err != 0) {
         Limelog("failed: %d\n", err);
         ListenerCallbacks.stageFailed(STAGE_CONTROL_STREAM_START, err);
@@ -467,13 +473,7 @@ int LiStartConnection(PSERVER_INFORMATION serverInfo, PSTREAM_CONFIGURATION stre
 
     Limelog("Starting video stream...");
     ListenerCallbacks.stageStarting(STAGE_VIDEO_STREAM_START);
-#ifdef __3DS__
-    PltSetCoreId(2);
-#endif
     err = startVideoStream(renderContext, drFlags);
-#ifdef __3DS__
-    PltSetCoreId(0);
-#endif
     if (err != 0) {
         Limelog("Video stream start failed: %d\n", err);
         ListenerCallbacks.stageFailed(STAGE_VIDEO_STREAM_START, err);

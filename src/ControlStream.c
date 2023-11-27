@@ -933,14 +933,12 @@ static void asyncCallbackThreadFunc(void* context) {
             avgLoopCount++;
         }
         else {
-            asyncCallbackThreadFunc_avgLoopTime = ((asyncCallbackThreadFunc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (asyncCallbackThreadFunc_avgLoopTime + 1);
+            asyncCallbackThreadFunc_avgLoopTime = ((asyncCallbackThreadFunc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
             if (avgLoopCount < 1000) {
                 avgLoopCount++;
             }
         }
-        printf("asyncCallbackThreadFunc: %llu ms", asyncCallbackThreadFunc_avgLoopTime);
     }
-    printf("asyncCallbackThreadFunc: %llu ms", asyncCallbackThreadFunc_avgLoopTime);
 }
 
 static bool needsAsyncCallback(unsigned short packetType) {
@@ -1301,14 +1299,12 @@ static void controlReceiveThreadFunc(void* context) {
             avgLoopCount++;
         }
         else {
-            controlReceiveThreadFunc_avgLoopTime = ((controlReceiveThreadFunc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (controlReceiveThreadFunc_avgLoopTime + 1);
+            controlReceiveThreadFunc_avgLoopTime = ((controlReceiveThreadFunc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
             if (avgLoopCount < 1000) {
                 avgLoopCount++;
             }
         }
-        printf("controlReceiveThreadFunc: %llu ms", controlReceiveThreadFunc_avgLoopTime);
     }
-    printf("controlReceiveThreadFunc: %llu ms", controlReceiveThreadFunc_avgLoopTime);
 }
 
 static void lossStatsThreadFunc(void* context) {
@@ -1528,14 +1524,12 @@ static void invalidateRefFramesFunc(void* context) {
             avgLoopCount++;
         }
         else {
-            invalidateRefFramesFunc_avgLoopTime = ((invalidateRefFramesFunc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (invalidateRefFramesFunc_avgLoopTime + 1);
+            invalidateRefFramesFunc_avgLoopTime = ((invalidateRefFramesFunc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
             if (avgLoopCount < 1000) {
                 avgLoopCount++;
             }
         }
-        printf("invalidateRefFramesFunc: %llu ms", invalidateRefFramesFunc_avgLoopTime);
     }
-    printf("invalidateRefFramesFunc: %llu ms", invalidateRefFramesFunc_avgLoopTime);
 }
 
 static void requestIdrFrameFunc(void* context) {

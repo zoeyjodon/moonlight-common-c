@@ -391,18 +391,16 @@ static void AudioReceiveThreadProc(void* context) {
             avgLoopCount++;
         }
         else {
-            AudioReceiveThreadProc_avgLoopTime = ((AudioReceiveThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (AudioReceiveThreadProc_avgLoopTime + 1);
+            AudioReceiveThreadProc_avgLoopTime = ((AudioReceiveThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
             if (avgLoopCount < 1000) {
                 avgLoopCount++;
             }
         }
-        printf("AudioReceiveThreadProc: %llu ms", AudioReceiveThreadProc_avgLoopTime);
     }
 
     if (packet != NULL) {
         free(packet);
     }
-    printf("AudioReceiveThreadProc: %llu ms", AudioReceiveThreadProc_avgLoopTime);
 }
 
 static uint64_t AudioDecoderThreadProc_avgLoopTime;
@@ -437,14 +435,12 @@ static void AudioDecoderThreadProc(void* context) {
             avgLoopCount++;
         }
         else {
-            AudioDecoderThreadProc_avgLoopTime = ((AudioDecoderThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (AudioDecoderThreadProc_avgLoopTime + 1);
+            AudioDecoderThreadProc_avgLoopTime = ((AudioDecoderThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
             if (avgLoopCount < 1000) {
                 avgLoopCount++;
             }
         }
-        printf("AudioDecoderThreadProc: %llu ms", AudioDecoderThreadProc_avgLoopTime);
     }
-    printf("AudioDecoderThreadProc: %llu ms", AudioDecoderThreadProc_avgLoopTime);
 }
 
 void stopAudioStream(void) {

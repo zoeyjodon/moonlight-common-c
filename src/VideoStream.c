@@ -182,18 +182,16 @@ static void VideoReceiveThreadProc(void* context) {
             avgLoopCount++;
         }
         else {
-            VideoReceiveThreadProc_avgLoopTime = ((VideoReceiveThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (VideoReceiveThreadProc_avgLoopTime + 1);
+            VideoReceiveThreadProc_avgLoopTime = ((VideoReceiveThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
             if (avgLoopCount < 1000) {
                 avgLoopCount++;
             }
         }
-        printf("VideoReceiveThreadProc: %llu ms", VideoReceiveThreadProc_avgLoopTime);
     }
 
     if (buffer != NULL) {
         free(buffer);
     }
-    printf("VideoReceiveThreadProc: %llu ms", VideoReceiveThreadProc_avgLoopTime);
 }
 
 void notifyKeyFrameReceived(void) {
@@ -229,14 +227,12 @@ static void VideoDecoderThreadProc(void* context) {
             avgLoopCount++;
         }
         else {
-            VideoDecoderThreadProc_avgLoopTime = ((VideoDecoderThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (VideoDecoderThreadProc_avgLoopTime + 1);
+            VideoDecoderThreadProc_avgLoopTime = ((VideoDecoderThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
             if (avgLoopCount < 1000) {
                 avgLoopCount++;
             }
         }
-        printf("VideoDecoderThreadProc: %llu ms", VideoDecoderThreadProc_avgLoopTime);
     }
-    printf("VideoDecoderThreadProc: %llu ms", VideoDecoderThreadProc_avgLoopTime);
 }
 
 // Read the first frame of the video stream
