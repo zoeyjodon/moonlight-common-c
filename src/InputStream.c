@@ -95,7 +95,7 @@ typedef struct _PACKET_HOLDER {
 // Initializes the input stream
 int initializeInputStream(void) {
     memcpy(currentAesIv, StreamConfig.remoteInputAesIv, sizeof(currentAesIv));
-
+    
     // Set a high maximum queue size limit to ensure input isn't dropped
     // while the input send thread is blocked for short periods.
     LbqInitializeLinkedBlockingQueue(&packetQueue, MAX_QUEUED_INPUT_PACKETS);
@@ -129,7 +129,7 @@ int initializeInputStream(void) {
 // Destroys and cleans up the input stream
 void destroyInputStream(void) {
     PLINKED_BLOCKING_QUEUE_ENTRY entry, nextEntry;
-
+    
     PltDestroyCryptoContext(cryptoContext);
 
     entry = LbqDestroyLinkedBlockingQueue(&packetQueue);
@@ -320,12 +320,6 @@ static void floatToNetfloat(float in, netfloat out) {
 }
 
 // Input thread proc
-static uint64_t inputSendThreadProc_avgLoopTime;
-
-uint64_t get_inputSendThreadProc_avgLoopTime() {
-    return inputSendThreadProc_avgLoopTime;
-}
-
 static void inputSendThreadProc(void* context) {
     SOCK_RET err;
     PPACKET_HOLDER holder;
@@ -344,16 +338,12 @@ static void inputSendThreadProc(void* context) {
     uint64_t lastControllerPacketTime[MAX_GAMEPADS] = { 0 };
     uint64_t lastMousePacketTime = 0;
     uint64_t lastPenPacketTime = 0;
-    inputSendThreadProc_avgLoopTime = 0;
-    uint64_t avgLoopCount = 0;
 
     while (!PltIsThreadInterrupted(&inputSendThread)) {
-
         err = LbqWaitForQueueElement(&packetQueue, (void**)&holder);
         if (err != LBQ_SUCCESS) {
             return;
         }
-        uint64_t loopTimeStart = PltGetMillis();
 
         // If it's a multi-controller packet we can do batching
         if (holder->packet.header.magic == multiControllerMagicLE) {
@@ -487,7 +477,7 @@ static void inputSendThreadProc(void* context) {
             // We sent everything we needed in the loop above, so we can just free the
             // holder of the original packet and wait for another input event.
             freePacketHolder(holder);
-            goto update_loop_avg;
+            continue;
         }
         // If it's an absolute mouse move packet, we should only send the latest
         else if (holder->packet.header.magic == LE32(MOUSE_MOVE_ABS_MAGIC)) {
@@ -658,7 +648,7 @@ static void inputSendThreadProc(void* context) {
             }
 
             freePacketHolder(holder);
-            goto update_loop_avg;
+            continue;
         }
 
         // Encrypt and send the input packet
@@ -668,19 +658,6 @@ static void inputSendThreadProc(void* context) {
         }
 
         freePacketHolder(holder);
-
-        update_loop_avg:
-        uint64_t loopTimeElapsed = PltGetMillis() - loopTimeStart;
-        if (avgLoopCount < 1) {
-            inputSendThreadProc_avgLoopTime = loopTimeElapsed;
-            avgLoopCount++;
-        }
-        else {
-            inputSendThreadProc_avgLoopTime = ((inputSendThreadProc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
-            if (avgLoopCount < 1000) {
-                avgLoopCount++;
-            }
-        }
     }
 }
 
@@ -764,7 +741,7 @@ int stopInputStream(void) {
     if (inputSock != INVALID_SOCKET) {
         shutdownTcpSocket(inputSock);
     }
-
+    
     if (inputSock != INVALID_SOCKET) {
         closeSocket(inputSock);
         inputSock = INVALID_SOCKET;

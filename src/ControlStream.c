@@ -362,7 +362,7 @@ void destroyControlStream(void) {
 
 static void queueFrameInvalidationTuple(uint32_t startFrame, uint32_t endFrame) {
     LC_ASSERT(startFrame <= endFrame);
-
+    
     if (isReferenceFrameInvalidationEnabled()) {
         PQUEUED_FRAME_INVALIDATION_TUPLE qfit;
         qfit = malloc(sizeof(*qfit));
@@ -411,7 +411,7 @@ void connectionSendFrameFecStatus(PSS_FRAME_FEC_STATUS fecStatus) {
     if (!IS_SUNSHINE()) {
         return;
     }
-
+    
     // Queue a frame FEC status message. This is best-effort only.
     PQUEUED_FRAME_FEC_STATUS queuedFecStatus = malloc(sizeof(*queuedFecStatus));
     if (queuedFecStatus != NULL) {
@@ -811,19 +811,10 @@ static int ignoreDisconnectIntercept(ENetHost* host, ENetEvent* event) {
     return 0;
 }
 
-static uint64_t asyncCallbackThreadFunc_avgLoopTime;
-
-uint64_t get_asyncCallbackThreadFunc_avgLoopTime() {
-    return asyncCallbackThreadFunc_avgLoopTime;
-}
-
 static void asyncCallbackThreadFunc(void* context) {
     PQUEUED_ASYNC_CALLBACK queuedCb, nextCb;
 
-    asyncCallbackThreadFunc_avgLoopTime = 0;
-    uint64_t avgLoopCount = 0;
     while (LbqWaitForQueueElement(&asyncCallbackQueue, (void**)&queuedCb) == LBQ_SUCCESS) {
-        uint64_t loopTimeStart = PltGetMillis();
         switch (queuedCb->typeIndex) {
         case IDX_RUMBLE_DATA:
             // Look for another rumble packet to batch with
@@ -925,19 +916,6 @@ static void asyncCallbackThreadFunc(void* context) {
         }
 
         free(queuedCb);
-
-        update_loop_avg:
-        uint64_t loopTimeElapsed = PltGetMillis() - loopTimeStart;
-        if (avgLoopCount < 1) {
-            asyncCallbackThreadFunc_avgLoopTime = loopTimeElapsed;
-            avgLoopCount++;
-        }
-        else {
-            asyncCallbackThreadFunc_avgLoopTime = ((asyncCallbackThreadFunc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
-            if (avgLoopCount < 1000) {
-                avgLoopCount++;
-            }
-        }
     }
 }
 
@@ -1011,12 +989,6 @@ static void queueAsyncCallback(PNVCTL_ENET_PACKET_HEADER_V1 ctlHdr, int packetLe
     }
 }
 
-static uint64_t controlReceiveThreadFunc_avgLoopTime;
-
-uint64_t get_controlReceiveThreadFunc_avgLoopTime() {
-    return controlReceiveThreadFunc_avgLoopTime;
-}
-
 static void controlReceiveThreadFunc(void* context) {
     int err;
 
@@ -1025,10 +997,7 @@ static void controlReceiveThreadFunc(void* context) {
         return;
     }
 
-    controlReceiveThreadFunc_avgLoopTime = 0;
-    uint64_t avgLoopCount = 0;
     while (!PltIsThreadInterrupted(&controlReceiveThread)) {
-        uint64_t loopTimeStart = PltGetMillis();
         ENetEvent event;
         enet_uint32 waitTimeMs;
 
@@ -1036,14 +1005,6 @@ static void controlReceiveThreadFunc(void* context) {
 
         // Poll for new packets and process retransmissions
         err = serviceEnetHost(client, &event, 0);
-        int retry_count = 0;
-        while (err != 0) {
-            if (retry_count > 3) {
-                break;
-            }
-            err = serviceEnetHost(client, &event, 0);
-            retry_count++;
-        }
 
         // Compute the next time we need to wake up to handle
         // the RTO timer or a ping.
@@ -1082,7 +1043,7 @@ static void controlReceiveThreadFunc(void* context) {
                         // we tear down the connection anyway.
                         client->intercept = NULL;
                         PltUnlockMutex(&enetMutex);
-                        goto update_loop_avg;
+                        continue;
                     }
                     else {
                         // The 1 second timeout has expired with no disconnect event
@@ -1102,7 +1063,7 @@ static void controlReceiveThreadFunc(void* context) {
                 // No events ready - wait for readability or a local RTO timer to expire
                 enet_uint32 condition = ENET_SOCKET_WAIT_RECEIVE;
                 enet_socket_wait(client->socket, &condition, waitTimeMs);
-                goto update_loop_avg;
+                continue;
             }
         }
 
@@ -1119,7 +1080,7 @@ static void controlReceiveThreadFunc(void* context) {
             if (event.packet->dataLength < sizeof(*ctlHdr)) {
                 Limelog("Discarding runt control packet: %d < %d\n", event.packet->dataLength, (int)sizeof(*ctlHdr));
                 enet_packet_destroy(event.packet);
-                goto update_loop_avg;
+                continue;
             }
 
             ctlHdr = (PNVCTL_ENET_PACKET_HEADER_V1)event.packet->data;
@@ -1134,7 +1095,7 @@ static void controlReceiveThreadFunc(void* context) {
                     if (event.packet->dataLength < sizeof(NVCTL_ENCRYPTED_PACKET_HEADER)) {
                         Limelog("Discarding runt encrypted control packet: %d < %d\n", event.packet->dataLength, (int)sizeof(NVCTL_ENCRYPTED_PACKET_HEADER));
                         enet_packet_destroy(event.packet);
-                        goto update_loop_avg;
+                        continue;
                     }
 
                     // encryptedHeaderType is already byteswapped by aliasing through ctlHdr above
@@ -1147,7 +1108,7 @@ static void controlReceiveThreadFunc(void* context) {
                     if (!decryptControlMessageToV1(encHdr, packetLength, &ctlHdr, &packetLength)) {
                         Limelog("Failed to decrypt control packet of size %d\n", event.packet->dataLength);
                         enet_packet_destroy(event.packet);
-                        goto update_loop_avg;
+                        continue;
                     }
 
                     // We need to byteswap the unsealed header too
@@ -1291,19 +1252,6 @@ static void controlReceiveThreadFunc(void* context) {
             ListenerCallbacks.connectionTerminated(-1);
             return;
         }
-
-        update_loop_avg:
-        uint64_t loopTimeElapsed = PltGetMillis() - loopTimeStart;
-        if (avgLoopCount < 1) {
-            controlReceiveThreadFunc_avgLoopTime = loopTimeElapsed;
-            avgLoopCount++;
-        }
-        else {
-            controlReceiveThreadFunc_avgLoopTime = ((controlReceiveThreadFunc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
-            if (avgLoopCount < 1000) {
-                avgLoopCount++;
-            }
-        }
     }
 }
 
@@ -1338,7 +1286,7 @@ static void lossStatsThreadFunc(void* context) {
                         free(queuedFrameStatus);
                         return;
                     }
-
+                    
                     free(queuedFrameStatus);
                 }
             }
@@ -1366,7 +1314,7 @@ static void lossStatsThreadFunc(void* context) {
     }
     else {
         char* lossStatsPayload;
-
+        
         // Sunshine should use the newer codepath above
         LC_ASSERT(!IS_SUNSHINE());
 
@@ -1481,19 +1429,10 @@ static void requestInvalidateReferenceFrames(uint32_t startFrame, uint32_t endFr
     Limelog("Invalidate reference frame request sent (%d to %d)\n", startFrame, endFrame);
 }
 
-static uint64_t invalidateRefFramesFunc_avgLoopTime;
-
-uint64_t get_invalidateRefFramesFunc_avgLoopTime() {
-    return invalidateRefFramesFunc_avgLoopTime;
-}
-
 static void invalidateRefFramesFunc(void* context) {
     LC_ASSERT(isReferenceFrameInvalidationEnabled());
 
-    invalidateRefFramesFunc_avgLoopTime = 0;
-    uint64_t avgLoopCount = 0;
     while (!PltIsThreadInterrupted(&invalidateRefFramesThread)) {
-        uint64_t loopTimeStart = PltGetMillis();
         PQUEUED_FRAME_INVALIDATION_TUPLE qfit;
         uint32_t startFrame;
         uint32_t endFrame;
@@ -1516,19 +1455,6 @@ static void invalidateRefFramesFunc(void* context) {
 
         // Send the reference frame invalidation request
         requestInvalidateReferenceFrames(startFrame, endFrame);
-
-        update_loop_avg:
-        uint64_t loopTimeElapsed = PltGetMillis() - loopTimeStart;
-        if (avgLoopCount < 1) {
-            invalidateRefFramesFunc_avgLoopTime = loopTimeElapsed;
-            avgLoopCount++;
-        }
-        else {
-            invalidateRefFramesFunc_avgLoopTime = ((invalidateRefFramesFunc_avgLoopTime * avgLoopCount) + loopTimeElapsed) / (avgLoopCount + 1);
-            if (avgLoopCount < 1000) {
-                avgLoopCount++;
-            }
-        }
     }
 }
 
@@ -1564,7 +1490,7 @@ int stopControlStream(void) {
     if (ctlSock != INVALID_SOCKET) {
         shutdownTcpSocket(ctlSock);
     }
-
+    
     PltInterruptThread(&lossStatsThread);
     PltInterruptThread(&requestIdrFrameThread);
     PltInterruptThread(&controlReceiveThread);
@@ -1597,7 +1523,7 @@ int stopControlStream(void) {
         enet_host_destroy(client);
         client = NULL;
     }
-
+    
     if (ctlSock != INVALID_SOCKET) {
         closeSocket(ctlSock);
         ctlSock = INVALID_SOCKET;
@@ -1668,7 +1594,7 @@ int startControlStream(void) {
     if (AppVersionQuad[0] >= 5) {
         ENetAddress address;
         ENetEvent event;
-
+        
         LC_ASSERT(ControlPortNumber != 0);
 
         enet_address_set_address(&address, (struct sockaddr *)&RemoteAddr, RemoteAddrLen);
@@ -1732,7 +1658,7 @@ int startControlStream(void) {
 
         // Ensure the connect verify ACK is sent immediately
         enet_host_flush(client);
-
+        
         // Set the peer timeout to 10 seconds and limit backoff to 2x RTT
         enet_peer_timeout(peer, 2, 10000, 10000);
     }

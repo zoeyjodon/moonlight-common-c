@@ -11,18 +11,6 @@
 extern "C" {
 #endif
 
-uint64_t get_inputSendThreadProc_avgLoopTime();
-
-uint64_t get_asyncCallbackThreadFunc_avgLoopTime();
-uint64_t get_controlReceiveThreadFunc_avgLoopTime();
-uint64_t get_invalidateRefFramesFunc_avgLoopTime();
-
-uint64_t get_AudioReceiveThreadProc_avgLoopTime();
-uint64_t get_AudioDecoderThreadProc_avgLoopTime();
-
-uint64_t get_VideoReceiveThreadProc_avgLoopTime();
-uint64_t get_VideoDecoderThreadProc_avgLoopTime();
-
 // Enable this definition during debugging to enable assertions
 //#define LC_DEBUG
 
@@ -72,7 +60,7 @@ typedef struct _STREAM_CONFIGURATION {
     // Specifies the channel configuration of the audio stream.
     // See AUDIO_CONFIGURATION constants and MAKE_AUDIO_CONFIGURATION() below.
     int audioConfiguration;
-
+    
     // Specifies the mask of supported video formats.
     // See VIDEO_FORMAT constants below.
     int supportedVideoFormats;
@@ -515,10 +503,10 @@ void LiInitializeConnectionCallbacks(PCONNECTION_LISTENER_CALLBACKS clCallbacks)
 typedef struct _SERVER_INFORMATION {
     // Server host name or IP address in text form
     const char* address;
-
+    
     // Text inside 'appversion' tag in /serverinfo
     const char* serverInfoAppVersion;
-
+    
     // Text inside 'GfeVersion' tag in /serverinfo (if present)
     const char* serverInfoGfeVersion;
 
@@ -878,7 +866,7 @@ int LiGetPendingAudioDuration(void);
 unsigned int LiGetPortFlagsFromStage(int stage);
 unsigned int LiGetPortFlagsFromTerminationErrorCode(int errorCode);
 
-// Returns the IPPROTO_* value for the specified port index
+// Returns the IPPROTO_* value for the specified port index 
 int LiGetProtocolFromPortFlagIndex(int portFlagIndex);
 
 // Returns the port number for the specified port index
