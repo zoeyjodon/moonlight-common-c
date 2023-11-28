@@ -132,7 +132,7 @@ void LiStopConnection(void) {
         Limelog("done\n");
     }
     LC_ASSERT(stage == STAGE_NONE);
-    
+
     if (RemoteAddrString != NULL) {
         free(RemoteAddrString);
         RemoteAddrString = NULL;
@@ -277,7 +277,7 @@ int LiStartConnection(PSERVER_INFORMATION serverInfo, PSTREAM_CONFIGURATION stre
 
     alreadyTerminated = false;
     ConnectionInterrupted = false;
-    
+
     // Validate the audio configuration
     if (MAGIC_BYTE_FROM_AUDIO_CONFIG(StreamConfig.audioConfiguration) != 0xCA ||
             CHANNEL_COUNT_FROM_AUDIO_CONFIGURATION(StreamConfig.audioConfiguration) > AUDIO_CONFIGURATION_MAX_CHANNEL_COUNT) {
@@ -324,7 +324,7 @@ int LiStartConnection(PSERVER_INFORMATION serverInfo, PSTREAM_CONFIGURATION stre
         Limelog("Disabling reference frame invalidation for 4K streaming with GFE\n");
         VideoCallbacks.capabilities &= ~CAPABILITY_REFERENCE_FRAME_INVALIDATION_AVC;
     }
-    
+
     Limelog("Initializing platform...");
     ListenerCallbacks.stageStarting(STAGE_PLATFORM_INIT);
     err = initializePlatform();
@@ -454,7 +454,13 @@ int LiStartConnection(PSERVER_INFORMATION serverInfo, PSTREAM_CONFIGURATION stre
 
     Limelog("Starting control stream...");
     ListenerCallbacks.stageStarting(STAGE_CONTROL_STREAM_START);
+#ifdef __3DS__
+    PltSetCoreId(2);
+#endif
     err = startControlStream();
+#ifdef __3DS__
+    PltSetCoreId(0);
+#endif
     if (err != 0) {
         Limelog("failed: %d\n", err);
         ListenerCallbacks.stageFailed(STAGE_CONTROL_STREAM_START, err);
@@ -480,7 +486,14 @@ int LiStartConnection(PSERVER_INFORMATION serverInfo, PSTREAM_CONFIGURATION stre
 
     Limelog("Starting audio stream...");
     ListenerCallbacks.stageStarting(STAGE_AUDIO_STREAM_START);
+
+#ifdef __3DS__
+    PltSetCoreId(1);
+#endif
     err = startAudioStream(audioContext, arFlags);
+#ifdef __3DS__
+    PltSetCoreId(0);
+#endif
     if (err != 0) {
         Limelog("Audio stream start failed: %d\n", err);
         ListenerCallbacks.stageFailed(STAGE_AUDIO_STREAM_START, err);
@@ -503,7 +516,7 @@ int LiStartConnection(PSERVER_INFORMATION serverInfo, PSTREAM_CONFIGURATION stre
     LC_ASSERT(stage == STAGE_INPUT_STREAM_START);
     ListenerCallbacks.stageComplete(STAGE_INPUT_STREAM_START);
     Limelog("done\n");
-    
+
     // Wiggle the mouse a bit to wake the display up
     LiSendMouseMoveEvent(1, 1);
     PltSleepMs(10);

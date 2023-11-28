@@ -129,6 +129,8 @@ int PltCreateMutex(PLT_MUTEX* mutex) {
     }
 #elif defined(__WIIU__)
     OSFastMutex_Init(mutex, "");
+#elif defined(__3DS__)
+    LightLock_Init(mutex);
 #else
     int err = pthread_mutex_init(mutex, NULL);
     if (err != 0) {
@@ -145,7 +147,7 @@ void PltDeleteMutex(PLT_MUTEX* mutex) {
     // No-op to destroy a SRWLOCK
 #elif defined(__vita__)
     sceKernelDeleteMutex(*mutex);
-#elif defined(__WIIU__)
+#elif defined(__WIIU__) || defined(__3DS__)
 
 #else
     pthread_mutex_destroy(mutex);
@@ -159,6 +161,8 @@ void PltLockMutex(PLT_MUTEX* mutex) {
     sceKernelLockMutex(*mutex, 1, NULL);
 #elif defined(__WIIU__)
     OSFastMutex_Lock(mutex);
+#elif defined(__3DS__)
+    LightLock_Lock(mutex);
 #else
     pthread_mutex_lock(mutex);
 #endif
@@ -171,6 +175,8 @@ void PltUnlockMutex(PLT_MUTEX* mutex) {
     sceKernelUnlockMutex(*mutex, 1);
 #elif defined(__WIIU__)
     OSFastMutex_Unlock(mutex);
+#elif defined(__3DS__)
+    LightLock_Unlock(mutex);
 #else
     pthread_mutex_unlock(mutex);
 #endif
@@ -187,6 +193,8 @@ void PltJoinThread(PLT_THREAD* thread) {
         free(thread->context);
 #elif defined(__WIIU__)
     OSJoinThread(&thread->thread, NULL);
+#elif defined(__3DS__)
+	threadJoin(thread->thread, U64_MAX);
 #else
     pthread_join(thread->thread, NULL);
 #endif
@@ -212,6 +220,13 @@ void PltInterruptThread(PLT_THREAD* thread) {
 #ifdef __WIIU__
 static void thread_deallocator(OSThread *thread, void *stack) {
     free(stack);
+}
+#endif
+
+#ifdef __3DS__
+static int n3ds_core_id = 0;
+void PltSetCoreId(int core_id) {
+    n3ds_core_id = core_id;
 }
 #endif
 
@@ -265,6 +280,22 @@ int PltCreateThread(const char* name, ThreadEntry entry, void* context, PLT_THRE
 
     OSSetThreadDeallocator(&thread->thread, thread_deallocator);
     OSResumeThread(&thread->thread);
+#elif defined(__3DS__)
+    {
+        s32 priority = 0x30;
+        size_t stack_size = 80 * 1024;
+        svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
+        thread->thread = threadCreate(ThreadProc,
+                                    ctx,
+                                    stack_size,
+                                    priority,
+                                    n3ds_core_id,
+                                    false);
+        if (thread->thread == NULL) {
+            free(ctx);
+            return -1;
+        }
+    }
 #else
     {
         int err = pthread_create(&thread->thread, NULL, ThreadProc, ctx);
@@ -351,6 +382,8 @@ int PltCreateConditionVariable(PLT_COND* cond, PLT_MUTEX* mutex) {
     }
 #elif defined(__WIIU__)
     OSFastCond_Init(cond, "");
+#elif defined(__3DS__)
+    CondVar_Init(cond);
 #else
     pthread_cond_init(cond, NULL);
 #endif
@@ -364,6 +397,8 @@ void PltDeleteConditionVariable(PLT_COND* cond) {
     sceKernelDeleteCond(*cond);
 #elif defined(__WIIU__)
     // No-op to delete an OSFastCondition
+#elif defined(__3DS__)
+    // No-op to delete CondVar
 #else
     pthread_cond_destroy(cond);
 #endif
@@ -376,6 +411,8 @@ void PltSignalConditionVariable(PLT_COND* cond) {
     sceKernelSignalCond(*cond);
 #elif defined(__WIIU__)
     OSFastCond_Signal(cond);
+#elif defined(__3DS__)
+    CondVar_Signal(cond);
 #else
     pthread_cond_signal(cond);
 #endif
@@ -388,6 +425,8 @@ void PltWaitForConditionVariable(PLT_COND* cond, PLT_MUTEX* mutex) {
     sceKernelWaitCond(*cond, NULL);
 #elif defined(__WIIU__)
     OSFastCond_Wait(cond, mutex);
+#elif defined(__3DS__)
+    CondVar_Wait(cond, mutex);
 #else
     pthread_cond_wait(cond, mutex);
 #endif
