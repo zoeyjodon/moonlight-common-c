@@ -93,6 +93,10 @@ void* ThreadProc(void* context) {
     free(ctx);
 #endif
 
+#if defined(__3DS__)
+    threadExit(0);
+#endif
+
 #if defined(LC_WINDOWS) || defined(__vita__) || defined(__WIIU__) || defined(__3DS__)
     return 0;
 #else
@@ -195,6 +199,7 @@ void PltJoinThread(PLT_THREAD* thread) {
     OSJoinThread(&thread->thread, NULL);
 #elif defined(__3DS__)
 	threadJoin(thread->thread, U64_MAX);
+    threadFree(thread->thread);
 #else
     pthread_join(thread->thread, NULL);
 #endif
