@@ -101,13 +101,19 @@ static void VideoReceiveThreadProc(void* context) {
             buffer = (char*)malloc(bufferSize);
             if (buffer == NULL) {
                 Limelog("Video Receive: malloc() failed\n");
-                ListenerCallbacks.connectionTerminated(-1);
+                ListenerCallbacks.connectionTerminated(ML_ERROR_VIDEO_MALLOC);
                 return;
             }
         }
 
         err = recvUdpSocket(rtpSocket, buffer, receiveSize, useSelect);
         if (err < 0) {
+#ifdef __3DS__
+            if (LastSocketFail() == 22) {
+                printf("Ignoring Video Receive Error 22\n");
+                continue;
+            }
+#endif
             Limelog("Video Receive: recvUdpSocket() failed: %d\n", (int)LastSocketError());
             ListenerCallbacks.connectionTerminated(LastSocketFail());
             break;

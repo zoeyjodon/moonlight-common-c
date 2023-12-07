@@ -60,7 +60,7 @@ typedef struct _STREAM_CONFIGURATION {
     // Specifies the channel configuration of the audio stream.
     // See AUDIO_CONFIGURATION constants and MAKE_AUDIO_CONFIGURATION() below.
     int audioConfiguration;
-    
+
     // Specifies the mask of supported video formats.
     // See VIDEO_FORMAT constants below.
     int supportedVideoFormats;
@@ -432,6 +432,21 @@ typedef void(*ConnListenerConnectionTerminated)(int errorCode);
 // supported on GFE 3.22+.
 #define ML_ERROR_FRAME_CONVERSION -104
 
+// Audio Stream ran out of memory
+#define ML_ERROR_AUDIO_MALLOC -105
+
+// Video Stream ran out of memory
+#define ML_ERROR_VIDEO_MALLOC -106
+
+// Control Stream ran out of memory
+#define ML_ERROR_CONTROL_MALLOC -107
+
+// Control Stream disconnect event timed out
+#define ML_ERROR_CONTROL_TIMEOUT -108
+
+// Control Stream received an unexpected disconnect event
+#define ML_ERROR_CONTROL_UNEXPECTED -109
+
 // This callback is invoked to log debug message
 typedef void(*ConnListenerLogMessage)(const char* format, ...);
 
@@ -503,10 +518,10 @@ void LiInitializeConnectionCallbacks(PCONNECTION_LISTENER_CALLBACKS clCallbacks)
 typedef struct _SERVER_INFORMATION {
     // Server host name or IP address in text form
     const char* address;
-    
+
     // Text inside 'appversion' tag in /serverinfo
     const char* serverInfoAppVersion;
-    
+
     // Text inside 'GfeVersion' tag in /serverinfo (if present)
     const char* serverInfoGfeVersion;
 
@@ -866,7 +881,7 @@ int LiGetPendingAudioDuration(void);
 unsigned int LiGetPortFlagsFromStage(int stage);
 unsigned int LiGetPortFlagsFromTerminationErrorCode(int errorCode);
 
-// Returns the IPPROTO_* value for the specified port index 
+// Returns the IPPROTO_* value for the specified port index
 int LiGetProtocolFromPortFlagIndex(int portFlagIndex);
 
 // Returns the port number for the specified port index
