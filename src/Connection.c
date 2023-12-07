@@ -506,7 +506,13 @@ int LiStartConnection(PSERVER_INFORMATION serverInfo, PSTREAM_CONFIGURATION stre
 
     Limelog("Starting input stream...");
     ListenerCallbacks.stageStarting(STAGE_INPUT_STREAM_START);
+#ifdef __3DS__
+    PltSetCoreId(1);
+#endif
     err = startInputStream();
+#ifdef __3DS__
+    PltSetCoreId(0);
+#endif
     if (err != 0) {
         Limelog("Input stream start failed: %d\n", err);
         ListenerCallbacks.stageFailed(STAGE_INPUT_STREAM_START, err);
