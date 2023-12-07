@@ -198,7 +198,7 @@ void PltJoinThread(PLT_THREAD* thread) {
 #elif defined(__WIIU__)
     OSJoinThread(&thread->thread, NULL);
 #elif defined(__3DS__)
-	threadJoin(thread->thread, U64_MAX);
+    threadJoin(thread->thread, U64_MAX);
     threadFree(thread->thread);
 #else
     pthread_join(thread->thread, NULL);
@@ -504,7 +504,7 @@ int initializePlatform(void) {
 
     enterLowLatencyMode();
 
-	return 0;
+    return 0;
 }
 
 void cleanupPlatform(void) {
