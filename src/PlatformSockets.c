@@ -11,7 +11,7 @@
 
 #define TEST_PORT_TIMEOUT_SEC 3
 
-#define RCV_BUFFER_SIZE_MIN  32767
+#define RCV_BUFFER_SIZE_MIN  0x2E30
 #define RCV_BUFFER_SIZE_STEP 16384
 
 #if defined(__vita__)
@@ -467,7 +467,7 @@ SOCKET connectTcpSocket(struct sockaddr_storage* dstaddr, SOCKADDR_LEN addrlen, 
         SetLastSocketError(ETIMEDOUT);
         return INVALID_SOCKET;
     }
-#ifndef __3DS__ //getsockopt is unreliable on 3DS
+#ifndef __3DS__ //SO_ERROR is unreliable on 3DS
     else {
         // The socket was signalled
         SOCKADDR_LEN len = sizeof(err);
