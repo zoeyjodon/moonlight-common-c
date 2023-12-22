@@ -109,6 +109,9 @@ void PltSleepMs(int ms) {
     SleepEx(ms, FALSE);
 #elif defined(__vita__)
     sceKernelDelayThread(ms * 1000);
+#elif defined(__3DS__)
+    s64 nsecs = ms * 1000000;
+    svcSleepThread(nsecs);
 #else
     useconds_t usecs = ms * 1000;
     usleep(usecs);
@@ -228,13 +231,6 @@ static void thread_deallocator(OSThread *thread, void *stack) {
 }
 #endif
 
-#ifdef __3DS__
-static int n3ds_core_id = 0;
-void PltSetCoreId(int core_id) {
-    n3ds_core_id = core_id;
-}
-#endif
-
 int PltCreateThread(const char* name, ThreadEntry entry, void* context, PLT_THREAD* thread) {
     struct thread_context* ctx;
 
@@ -294,7 +290,7 @@ int PltCreateThread(const char* name, ThreadEntry entry, void* context, PLT_THRE
                                     ctx,
                                     stack_size,
                                     priority,
-                                    n3ds_core_id,
+                                    -1,
                                     false);
         if (thread->thread == NULL) {
             free(ctx);

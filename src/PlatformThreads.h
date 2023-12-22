@@ -35,8 +35,6 @@ typedef struct _PLT_THREAD {
     Thread thread;
     bool cancelled;
 } PLT_THREAD;
-
-void PltSetCoreId(int core_id);
 #elif defined (LC_POSIX)
 #else
 #error Unsupported platform
