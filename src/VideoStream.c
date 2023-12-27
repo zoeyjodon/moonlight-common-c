@@ -108,12 +108,6 @@ static void VideoReceiveThreadProc(void* context) {
 
         err = recvUdpSocket(rtpSocket, buffer, receiveSize, useSelect);
         if (err < 0) {
-#ifdef __3DS__
-            if (LastSocketFail() == 22) {
-                printf("Ignoring Video Receive Error 22\n");
-                continue;
-            }
-#endif
             Limelog("Video Receive: recvUdpSocket() failed: %d\n", (int)LastSocketError());
             ListenerCallbacks.connectionTerminated(LastSocketFail());
             break;
