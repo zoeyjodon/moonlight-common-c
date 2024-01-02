@@ -101,7 +101,7 @@ static void VideoReceiveThreadProc(void* context) {
             buffer = (char*)malloc(bufferSize);
             if (buffer == NULL) {
                 Limelog("Video Receive: malloc() failed\n");
-                ListenerCallbacks.connectionTerminated(ML_ERROR_VIDEO_MALLOC);
+                ListenerCallbacks.connectionTerminated(-1);
                 return;
             }
         }

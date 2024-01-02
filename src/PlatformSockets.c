@@ -11,7 +11,7 @@
 
 #define TEST_PORT_TIMEOUT_SEC 3
 
-#define RCV_BUFFER_SIZE_MIN  0x2E30
+#define RCV_BUFFER_SIZE_MIN  32767
 #define RCV_BUFFER_SIZE_STEP 16384
 
 #if defined(__vita__)

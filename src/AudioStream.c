@@ -262,7 +262,7 @@ static void AudioReceiveThreadProc(void* context) {
             packet = (PQUEUED_AUDIO_PACKET)malloc(sizeof(*packet));
             if (packet == NULL) {
                 Limelog("Audio Receive: malloc() failed\n");
-                ListenerCallbacks.connectionTerminated(ML_ERROR_AUDIO_MALLOC);
+                ListenerCallbacks.connectionTerminated(-1);
                 break;
             }
         }

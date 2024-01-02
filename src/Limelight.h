@@ -432,21 +432,6 @@ typedef void(*ConnListenerConnectionTerminated)(int errorCode);
 // supported on GFE 3.22+.
 #define ML_ERROR_FRAME_CONVERSION -104
 
-// Audio Stream ran out of memory
-#define ML_ERROR_AUDIO_MALLOC -105
-
-// Video Stream ran out of memory
-#define ML_ERROR_VIDEO_MALLOC -106
-
-// Control Stream ran out of memory
-#define ML_ERROR_CONTROL_MALLOC -107
-
-// Control Stream disconnect event timed out
-#define ML_ERROR_CONTROL_TIMEOUT -108
-
-// Control Stream received an unexpected disconnect event
-#define ML_ERROR_CONTROL_UNEXPECTED -109
-
 // This callback is invoked to log debug message
 typedef void(*ConnListenerLogMessage)(const char* format, ...);
 
