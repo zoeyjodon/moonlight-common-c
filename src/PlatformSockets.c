@@ -149,11 +149,13 @@ int pollSockets(struct pollfd* pollFds, int pollFdsCount, int timeoutMs) {
     return err;
 #elif defined(__3DS__)
     int err;
-    for (int i = 0; i < timeoutMs; i++) {
-        err = poll(pollFds, pollFdsCount, 1); // need to do this on 3ds since poll will block even if socket is ready before
+    u64 poll_start = osGetTime();
+    for (u64 i = poll_start; (i - poll_start) < timeoutMs; i = osGetTime()) {
+        err = poll(pollFds, pollFdsCount, 0); // This is running for 14ms
         if (err) {
             break;
         }
+        svcSleepThread(1000);
     }
     return err;
 #else
