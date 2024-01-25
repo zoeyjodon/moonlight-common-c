@@ -37,6 +37,7 @@ DWORD (WINAPI *pfnWlanSetInterface)(HANDLE hClientHandle, CONST GUID *pInterface
 
 #ifdef __3DS__
 in_port_t n3ds_udp_port = 47998;
+static const int n3ds_buf_size = 0x10400;
 #endif
 
 void addrToUrlSafeString(struct sockaddr_storage* addr, char* string, size_t stringLength)
@@ -296,6 +297,10 @@ SOCKET bindUdpSocket(int addressFamily, struct sockaddr_storage* localAddr, SOCK
     }
 #endif
 
+#ifdef __3DS__
+    if (bufferSize == 0 || bufferSize > n3ds_buf_size)
+        bufferSize = n3ds_buf_size;
+#endif
     if (bufferSize != 0) {
         // We start at the requested recv buffer value and step down until we find
         // a value that the OS will accept.
@@ -307,7 +312,11 @@ SOCKET bindUdpSocket(int addressFamily, struct sockaddr_storage* localAddr, SOCK
             }
             else if (bufferSize <= RCV_BUFFER_SIZE_MIN) {
                 // Failed to set a buffer size within the allowable range
-                break;
+                err = LastSocketError();
+                Limelog("Set rcv buffer size failed: %d\n", err);
+                closeSocket(s);
+                SetLastSocketError(err);
+                return INVALID_SOCKET;
             }
             else if (bufferSize - RCV_BUFFER_SIZE_STEP <= RCV_BUFFER_SIZE_MIN) {
                 // Last shot - we're trying the minimum
