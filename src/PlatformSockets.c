@@ -37,7 +37,7 @@ DWORD (WINAPI *pfnWlanSetInterface)(HANDLE hClientHandle, CONST GUID *pInterface
 
 #ifdef __3DS__
 in_port_t n3ds_udp_port = 47998;
-static const int n3ds_buf_size = 0x10400;
+static const int n3ds_max_buf_size = 0x20000;
 #endif
 
 void addrToUrlSafeString(struct sockaddr_storage* addr, char* string, size_t stringLength)
@@ -298,8 +298,8 @@ SOCKET bindUdpSocket(int addressFamily, struct sockaddr_storage* localAddr, SOCK
 #endif
 
 #ifdef __3DS__
-    if (bufferSize == 0 || bufferSize > n3ds_buf_size)
-        bufferSize = n3ds_buf_size;
+    if (bufferSize == 0 || bufferSize > n3ds_max_buf_size)
+        bufferSize = n3ds_max_buf_size;
 #endif
     if (bufferSize != 0) {
         // We start at the requested recv buffer value and step down until we find
