@@ -15,7 +15,7 @@ struct thread_context {
 };
 
 #ifdef __3DS__
-int n3ds_thread_priority = 0x30;
+static int n3ds_thread_priority = 0x30;
 #endif
 
 static int activeThreads = 0;

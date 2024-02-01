@@ -382,9 +382,6 @@ SOCKET createSocket(int addressFamily, int socketType, int protocol, bool nonBlo
         setsockopt(s, SOL_SOCKET, SO_NOSIGPIPE, (char*)&val, sizeof(val));
     }
 #endif
-#ifdef __3DS__
-    SOCU_AddGlobalSocket(s);
-#endif
 
     if (nonBlocking) {
         setSocketNonBlocking(s, true);

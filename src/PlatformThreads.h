@@ -29,7 +29,6 @@ typedef struct _PLT_THREAD {
     int cancelled;
 } PLT_THREAD;
 #elif defined(__3DS__)
-extern int n3ds_thread_priority;
 typedef LightLock PLT_MUTEX;
 typedef CondVar PLT_COND;
 typedef struct _PLT_THREAD {
